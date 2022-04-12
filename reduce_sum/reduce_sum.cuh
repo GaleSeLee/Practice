@@ -37,15 +37,14 @@ void Solve(float *h_in, float *h_reference, int num_items) {
     return ;
 }
 
-int assnear(float a, float b, float err = 1e-1, float rel_err = 1e-3) {
-    printf("Result : %f, %f\n",a,b);
+int assnear(float a, float b, float err = 1e-1, float rel_err = 1e-5) {
     if(abs(a-b) > err && abs(a-b)/a > rel_err) return 0;
     return 1;
 }
 
 void TestResult(float *h_out, float *h_reference) {
     if(!assnear(*h_out, *h_reference))
-        printf("Error result!\n");
+        printf("Error result! Out = %f, Ref = %f\n", *h_out, *h_reference);
 }
 
 #endif // _TAICHI_BENCHMARK_REDUCE_SRC_CUDA_REDUCE_SUM_CUH_

@@ -22,7 +22,6 @@ __device__ float BlockReduceSum(float val) {
     __shared__ float warp_sum[32];
 
     val = WarpReduceSum(val);
-    __syncthreads();
     if(lane == 31) warp_sum[warp_id] = val;
     __syncthreads();
     if(warp_id == 0) {
@@ -38,7 +37,6 @@ __device__ float BlockReduceSum(float val) {
     }
     __syncthreads();
     if(warp_id > 0) val += warp_sum[warp_id-1];
-    __syncthreads();
     return val;
 }
 
@@ -58,7 +56,7 @@ void ReduceSumKernel(float *in, float *out,
 void ReduceSum(float *d_in, float *d_out, int num_items) {
     int TPB = TPB1D;
     int num_part = (num_items + TPB - 1) / TPB;
-    int BPG = std::min<int>(num_part, 512);
+    int BPG = std::min<int>(num_part, 256);
     ReduceSumKernel<<<BPG, TPB>>> (
         d_in, d_out, num_items, num_part);
     if(num_part >= 2) {
@@ -79,7 +77,8 @@ int main(int argc, char **argv) {
 
     cudaMalloc(&d_in, num_items * sizeof(float));
     // Loose boundary
-    cudaMalloc(&d_out, (num_items + TPB1D - 1) / TPB1D * 2);
+    cudaMalloc(&d_out, (num_items + TPB1D - 1) / TPB1D * 2 * sizeof(float));
+    cudaMemset(d_out, 0, (num_items + TPB1D - 1) / TPB1D * 2 * sizeof(float));
     cuErrCheck(cudaMemcpy(d_in, h_in, sizeof(float) * num_items, cudaMemcpyHostToDevice));
 
     cudaEvent_t start, stop;
