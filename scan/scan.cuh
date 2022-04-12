@@ -14,6 +14,12 @@
 #include <cub/util_allocator.cuh>
 #include <cub/device/device_scan.cuh>
 
+#include <thrust/device_vector.h>
+#include <thrust/scan.h>
+#include <thrust/sequence.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/counting_iterator.h>
+
 inline void cuAssert(cudaError_t status, const char *file, int line) {
     if (status != cudaSuccess)
         std::cerr<<"cuda assert: "<<cudaGetErrorString(status)<<", file: "<<file<<", line: "<<line<<std::endl;
@@ -24,20 +30,20 @@ inline void cuAssert(cudaError_t status, const char *file, int line) {
     }
 
 void Initialize(float *h_in, int num_items) {
-    for (int ii = 0; ii < num_items; ii++) h_in[ii] = 1.0f;
+    for (int ii = 0; ii < num_items; ii++) h_in[ii] = float(ii)/100.0f;
 }
 
-int Solve(float *h_in, float *h_reference, int num_items) {
-    int inclusive = 0;
+void Solve(float *h_in, float *h_reference, int num_items) {
+    float inclusive = 0;
     for (int ii = 0; ii < num_items; ii++) {
         inclusive += h_in[ii];
         h_reference[ii] = inclusive;
     }
-    return inclusive;
+    return ;
 }
 
-int assnear(float a, float b, float err = 1e-5) {
-    if(abs(a-b) > err) return 0;
+int assnear(float a, float b, float err = 1e-7) {
+    if(abs(a-b)/abs(a) > err) return 0;
     return 1;
 }
 

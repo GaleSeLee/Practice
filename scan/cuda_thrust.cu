@@ -26,4 +26,8 @@ int main(int argc, char **argv) {
     printf("scan %i elements takes %f ms\n", num_items, milliseconds);
     cuErrCheck(cudaMemcpy(h_out, thrust::raw_pointer_cast(&u[0]), sizeof(float) * (num_items), cudaMemcpyDeviceToHost));
     TestResult(h_out, h_reference, num_items);
+
+    delete[] h_in;
+    delete[] h_out;
+    delete[] h_reference;
 }

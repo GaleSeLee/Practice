@@ -118,6 +118,7 @@ int main(int argc, char **argv) {
     TestResult(h_out, h_reference, num_items);
 
     cudaFree(d_in);
+    cudaFree(buffer);
     cudaFree(d_out);
     delete[] h_in;
     delete[] h_reference;
