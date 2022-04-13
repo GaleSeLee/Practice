@@ -49,7 +49,7 @@ void scan_and_write_part_sum_kernel(float *in, float *out,
         // num_item may be greater than gridDim.x * bloackDim.x.
         int idx = blockDim.x * ii + threadIdx.x;
         float val = idx < num_items ? in[idx] : 0;
-        val = ScanBlock(in[idx]);
+        val = ScanBlock(val);
         if(idx < num_items) out[idx] = val;
         if(threadIdx.x == blockDim.x - 1 && idx < num_items) {
             buffer[ii] = val;

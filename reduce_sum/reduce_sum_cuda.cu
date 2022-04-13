@@ -43,25 +43,26 @@ __device__ float BlockReduceSum(float val) {
 __global__
 void ReduceSumKernel(float *in, float *out,
     int num_items, int num_part) {
+    float val = 0;
+    int idx = 0;
     for(int ii = blockIdx.x; ii < num_part; ii += gridDim.x) {
-        int idx = blockDim.x * ii + threadIdx.x;
-        float val = idx < num_items ? in[idx] : 0;
-        val = BlockReduceSum(in[idx]);
-        if((threadIdx.x == blockDim.x - 1 && idx < num_items) || (idx == num_items - 1)) {
-            out[ii] = val;
-        }
+        idx = threadIdx.x +  blockDim.x * ii;
+        val += idx < num_items ? in[idx] : 0;
+    }
+    val = BlockReduceSum(val);
+    if(threadIdx.x == blockDim.x - 1&& (idx < num_items) || (idx == num_items - 1)) {
+        out[blockIdx.x] = val;
     }
 }
 
 void ReduceSum(float *d_in, float *d_out, int num_items) {
     int TPB = TPB1D;
     int num_part = (num_items + TPB - 1) / TPB;
-    int BPG = std::min<int>(num_part, 256);
+    int BPG = std::min<int>(num_part, 512);
     ReduceSumKernel<<<BPG, TPB>>> (
         d_in, d_out, num_items, num_part);
-    if(num_part >= 2) {
-        ReduceSum(d_out, d_out, num_part);
-    }
+    ReduceSumKernel<<<1, TPB>>>(
+        d_out, d_out, BPG, 1);
 }
 
 int main(int argc, char **argv) {

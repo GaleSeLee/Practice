@@ -1,0 +1,6 @@
+scan/cub
+scan/thrust
+scan/cuda
+reduce_sum/cub
+reduce_sum/cuda
+reduce_sum/thrsut
