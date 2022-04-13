@@ -1,6 +1,6 @@
 #include "scan.cuh"
 
-__device__ float ScanWarp(float val) {
+__device__ float WarpScan(float val) {
     int lane = threadIdx.x & 31;
     float tmp = __shfl_up_sync(0xffffffff, val, 1);
     if (lane >= 1) val += tmp;
@@ -16,12 +16,12 @@ __device__ float ScanWarp(float val) {
     return val;
 }
 
-__device__ float ScanBlock(float val) {
+__device__ float BlockScan(float val) {
     int warp_id = threadIdx.x >> 5;
     int lane = threadIdx.x & 31;
     __shared__ float warp_sum[32];
 
-    val = ScanWarp(val);
+    val = WarpScan(val);
     __syncthreads();
     if(lane == 31) warp_sum[warp_id] = val;
     __syncthreads();
@@ -43,13 +43,12 @@ __device__ float ScanBlock(float val) {
 }
 
 __global__ 
-void scan_and_write_part_sum_kernel(float *in, float *out,
+void ScanKernel(float *in, float *out,
         float *buffer, int num_items, int num_part) {
     for(int ii = blockIdx.x; ii < num_part; ii += gridDim.x) {
-        // num_item may be greater than gridDim.x * bloackDim.x.
         int idx = blockDim.x * ii + threadIdx.x;
         float val = idx < num_items ? in[idx] : 0;
-        val = ScanBlock(val);
+        val = BlockScan(val);
         if(idx < num_items) out[idx] = val;
         if(threadIdx.x == blockDim.x - 1 && idx < num_items) {
             buffer[ii] = val;
@@ -57,7 +56,7 @@ void scan_and_write_part_sum_kernel(float *in, float *out,
     }
 }
 
-__global__ void add_base_sum_kernel(float *buffer, float *out,
+__global__ void AddBaseKernel(float *buffer, float *out,
     int num_items, int num_part) {
     for(int ii = blockIdx.x; ii < num_part; ii += gridDim.x) {
         if(ii == 0) continue;
@@ -66,15 +65,15 @@ __global__ void add_base_sum_kernel(float *buffer, float *out,
     }
 }
 
-void scan(float *d_in, float *d_out, float *buffer, int num_items) {
+void Scan(float *d_in, float *d_out, float *buffer, int num_items) {
     int TPB = 1024;
     int num_part = (num_items + TPB - 1) / TPB;
     int BPG = std::min<int>(num_part, 256);
-    scan_and_write_part_sum_kernel<<<BPG, TPB>>> (
+    ScanKernel<<<BPG, TPB>>> (
         d_in, d_out, buffer, num_items, num_part);
     if(num_part >= 2) {
-        scan(buffer, buffer + num_part, buffer, num_part);
-        add_base_sum_kernel<<<BPG, TPB>>>(buffer+num_part, d_out, num_items, num_part);
+        Scan(buffer, buffer + num_part, buffer, num_part);
+        AddBaseKernel<<<BPG, TPB>>>(buffer+num_part, d_out, num_items, num_part);
     }
 }
 
@@ -105,7 +104,7 @@ int main(int argc, char **argv) {
     
     cudaEventRecord(start);
 
-    scan(d_in, d_out, buffer, num_items);
+    Scan(d_in, d_out, buffer, num_items);
     cudaDeviceSynchronize();
     cuErrCheck(cudaGetLastError());
     cudaEventRecord(stop);
