@@ -1,6 +1,8 @@
-scan/cub
-scan/thrust
-scan/cuda
-reduce_sum/cub
-reduce_sum/cuda
-reduce_sum/thrsut
+cuda/scan/cub
+cuda/scan/thrust
+cuda/scan/cuda
+cuda/reduce_sum/cub
+cuda/reduce_sum/cuda
+cuda/reduce_sum/thrsut
+rocm/info/info
+rocm/vecadd/vecadd
