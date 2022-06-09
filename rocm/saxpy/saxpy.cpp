@@ -78,7 +78,10 @@ __host__ void saxpy(int n) {
 }
 
 int main() {
-    int n = 4096;
-    saxpy(n);
+    int n = 256;
+    for (int ii = 0; ii < 5; ii++) {
+        saxpy(n);
+        n *= 2;
+    }
     return 0;
 }
